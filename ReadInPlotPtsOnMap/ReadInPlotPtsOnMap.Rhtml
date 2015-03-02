@@ -1,0 +1,288 @@
+<html>
+
+<head>
+<title>GIS Tutorial 1</title>
+</head>
+
+<body>
+
+<h1>Reading in Data with Points and Shapes</h1>
+<p>In this tutorial, we walk through loading both shape files and points data and plot it using ggplot2. Once in the proper form, ggplot2 allows for incredible options in plotting data, but it can be a bit of a challenge.</p>
+<p>First, we will read in our libraries.</p>
+
+<!--begin.rcode
+require(ggplot2)
+require(rgdal)
+require(sp)
+require(raster)
+require(plyr)
+end.rcode-->
+
+<p>Next, we will load in our shape file using the readOGR function of rgdal.</p>
+<!--begin.rcode label='loadShape'
+shp <- readOGR("C:/users/jarrodanderin/Documents/_RWork/_Datasets/tl_2010_us_state10",'tl_2010_us_state10')
+end.rcode-->
+
+<p>We can use R's base plotting to check if it read in.</p>
+
+<!--begin.rcode fig.width=8, fig.height=8
+plot(shp)
+end.rcode-->
+
+<p>Obviously, we've got some awkward white space, affected by part of Alaska crossing into the right hand side of the map. Additionally, the data structure is not conducive to plotting. We need to turn it into a dataframe object to make it easier to work with. Additionally, it should be in a common projection with our points.</p>
+
+<p>Each polygon contains an attribute table, which can be accessed by looking at shp@data.</p>
+
+<!--begin.rcode
+head(shp@data)
+end.rcode-->
+
+<p>We can now see that we have state names, and can just drop the non-continental US.</p>
+
+<!--begin.rcode
+shp <- shp[shp$NAME10!="Alaska" & shp$NAME10!='Hawaii' & shp$NAME10!="Puerto Rico",]
+end.rcode-->
+
+<!--begin.rcode
+shp <- spTransform(shp,CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+shp@data$id <- rownames(shp@data)
+shp.points = fortify(shp,region='id')
+shp.df = join(shp.points, shp@data, by='id')
+head(shp.df)
+end.rcode-->
+
+<p>Now let's plot it using ggplot2 to see how we did</p>
+
+<!--begin.rcode fig.width=8,fig.height=8
+ggplot()+
+  geom_polygon(data=shp.df,aes(long,lat,group=group),fill=NA,color='black')
+end.rcode-->
+
+<p>Obviously we are able to see that the map is now of just the United States. Looking at some of the options we used to plot, we see that we made a pretty boring plot. Also, we use a lot of grey with the base theme for ggplot. To avoid distortion, we use the command coord_fixed() to fix the coordinates with the actual map coordinates. Below, we add some features and get rid of formatting we don't need.</p>
+
+<!--begin.rcode fig.width=8, fig.height=5
+ggplot()+
+  geom_polygon(data=shp.df,aes(long,lat,group=group,fill=NAME10),color='black')+
+  ggtitle("Map of the United States")+
+  theme_bw()+
+    theme(panel.border=element_blank(),
+        panel.grid=element_blank(),
+        axis.text=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        legend.position='none')+
+  coord_fixed()
+end.rcode-->
+
+<p>Let's say for lack of something better to do, we wanted hot pink, visible borders. We change the polygon color (hot pink is #ff694b in the html color scale) and size (to 3, which is quite large). Also, for future use, we save the theme as a shortcut.</p>
+
+<!--begin.rcode fig.width=8, fig.height=5
+mapTheme <- theme_bw()+
+    theme(panel.border=element_blank(),
+        panel.grid=element_blank(),
+        axis.text=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        legend.position='none')
+ggplot()+
+  geom_polygon(data=shp.df,aes(long,lat,group=group,fill=NAME10),color='#ff694b',size=3)+
+  ggtitle("Map of the United States")+
+  mapTheme+
+  coord_fixed()
+
+end.rcode-->
+
+<p>Now that we have a map that we can fiddle with, we can think about doing a better job with the map. As you can see, the map combines Michigan, hiding the Great Lakes, which is not great. A wonderful resource of GIS data is available from <a href='http://www.naturalearthdata.org'>Natural Earth Data</a>. I downloaded their quick start kit. First, we load the 10m cultural shapefile for states and provinces. It's got the whole world, so we'll obviously want to filter it down.
+
+<!--begin.rcode
+shp <- readOGR("C:/users/jarrodanderin/Documents/_RWork/_Datasets/Natural_Earth_quick_start/10m_cultural",'ne_10m_admin_1_states_provinces_shp')
+head(shp@data)#field with country is 'admin'
+shp <- shp[shp$admin=='United States of America' & shp$name!="Alaska" & shp$name!="Hawaii",]
+end.rcode-->
+
+<p>Plotting it using base r, we can see tht it is still missing the great lakes. so we'll download another layer for water bodies.</p>
+
+<!--begin.rcode fig.width=8, fig.height=5
+plot(shp)
+end.rcode-->
+
+<!--begin.rcode
+lakes <- readOGR("C:/users/jarrodanderin/Documents/_RWork/_Datasets/Natural_Earth_quick_start/10m_physical",'ne_10m_lakes')
+lakes <- lakes[which(lakes$name_alt=='Great Lakes'),]
+
+end.rcode-->
+
+<p>Since we'll be doing a bunch of converting shapes to data frames, let's make a function out of that.</p>
+
+<!--begin.rcode
+
+shapeToDataFrame <- function(shape){
+  shape <- spTransform(shape,CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  shape@data$id <- rownames(shape@data)
+  shape.points = fortify(shape,region='id')
+  shape.df = join(shape.points, shape@data, by='id')
+}
+shp.df <- shapeToDataFrame(shp)
+lakes.df <- shapeToDataFrame(lakes)
+end.rcode-->
+
+<p>Now we plot, since the great lakes should overlay the lines of Michigan, we'll plot the states first, then the lakes on top.</p>
+
+<!--begin.rcode fig.width=8, fig.height=5
+ggplot()+
+  geom_polygon(data=shp.df,aes(long,lat,group=group,fill=name),color='black')+
+  geom_polygon(data=lakes.df,aes(long,lat,group=group),fill="Blue")+
+  ggtitle("Map of the United States")+
+  mapTheme+
+  coord_fixed()
+end.rcode-->
+
+<p>The projection on this makes the Great Lakes Region look ridiculous. Let's figure out how to limit the size of the map so that distortion is less of a problem. First, we create a vector of states in a given region. Then we filter the shp with that region to shrink our polygons of states to just those we care about.</p>
+
+<!--begin.rcode
+greatlakesregion <- c("Minnesota","Michigan","Illinois","Wisconsin","Ohio","Indiana","Ohio")##Don't want to bother with New England
+shp <- shp[which(shp$name %in% greatlakesregion),]
+shp.df <- shapeToDataFrame(shp)
+end.rcode-->
+
+<!--begin.rcode fig.width=8, fig.height=5
+ggplot()+
+  geom_polygon(data=shp.df,aes(long,lat,group=group,fill=name),color='black')+
+  geom_polygon(data=lakes.df,aes(long,lat,group=group),fill="Blue")+
+  ggtitle("Map of the United States")+
+  mapTheme+
+  coord_fixed()
+end.rcode-->
+
+<p>now you were thinking that we would be doing both shapefiles and point data. For this section, we're going to use different datasets. We'll be looking at Divvy bike stations in Chicago. We get our shapefiles from <a href='http://www.cityofchicago.org/city/en/depts/doit/supp_info/gis_data.html'>Chicago's GIS repository.</a> We're going to use the city boundary layer, and the bike routes layer, and then we're going to plot the Divvy bike stations.</p>
+
+<!--begin.rcode
+city <- readOGR("C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS",'City_Boundary')
+city.df <- shapeToDataFrame(city)
+bikes <- readOGR("C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS",'Bike_Routes')
+bikes.df <- shapeToDataFrame(bikes)
+divvy <- read.csv("C:/users/jarrodanderin/Documents/_RWork/_Datasets/Divvy_Stations_Trips_2013/Divvy_Stations_Trips_2013/Divvy_Stations_2013.csv", stringsAsFactors=FALSE)
+end.rcode-->
+
+<!--begin.rcode fig.height=8, fig.width=8
+ggplot()+
+  geom_polygon(data=city.df,aes(long,lat,group=group))+
+  geom_path(data=bikes.df,aes(long,lat,group=group))+
+  geom_point(data=divvy,aes(x=latitude,y=longitude),color='red')+
+  coord_fixed()
+end.rcode-->
+
+<p>What the hell? This is due to incorrect projection mapping. If we put the ggplot fomatting back in there and plot just the polygon, we can see our problem (if we realize the points are in latitude and longitude).</p>
+
+<!--begin.rcode fig.height=8, fig.width=8
+ggplot(data=city.df,aes(long,lat,group=group))+geom_polygon()
+end.rcode-->
+
+<p>The x-y combo for the city map is in a different projection, so we need to convert the points to the appropriate projection (thanks to <a href='http://zevross.com/blog/2014/07/16/mapping-in-r-using-the-ggplot2-package/'>Zevross Blog</a> for this pointer).</p>
+
+<!--begin.rcode
+class(divvy)
+coordinates(divvy) <- ~longitude+latitude##Makes it into a spatialPointsDataFrame
+class(divvy)
+##We assume that the lat and long are in NAD83 projection
+proj4string(divvy) <- CRS("+proj=longlat +datum=NAD83")
+divvy <- spTransform(divvy,CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+divvy <- data.frame(divvy)##ggplot expects a datafrmae, not a spatialpoints dataframe
+end.rcode-->
+
+<p>Now we should be able to plot.</p>
+
+<!--begin.rcode fig.height=8, fig.width=8
+ggplot()+
+  geom_polygon(data=city.df,aes(long,lat,group=group),fill=NA,color='black')+
+  geom_path(data=bikes.df,aes(long,lat,group=group),color='grey')+
+  geom_point(data=divvy,aes(longitude,latitude),color='red')+
+  #mapTheme+
+  coord_fixed()
+end.rcode-->
+
+<p>That worked, but its not very informative. We need to zoom in. Unfortunately, just using xlim and ylim excludes every line (i.e. bike path) that does not start and stop inside the boundaries of the plot. So we need to crop the lines and the polygons appropriately. We use some code copied from <a href='https://stat.ethz.ch/pipermail/r-sig-geo/2012-June/015340.html'>a mailing list</a>. We'll set this up as a function for clarity.</p>
+
+<!--begin.rcode
+#https://stat.ethz.ch/pipermail/r-sig-geo/2012-June/015340.html
+
+
+cropShapeToBB <- function(shape,boundingbox){
+  SP <- SpatialPolygons(list(Polygons(list(Polygon(bnds)), "1")),
+  proj4string=CRS(proj4string(shape)))##Match projection to the layer we're cropping
+  gI <- gIntersects(shape, SP, byid=TRUE)##Find intersection, and then go through and trim each line.
+  out <- vector(mode="list", length=length(which(gI)))
+  ii <- 1
+  for (i in seq(along=gI)) if (gI[i]){out[[ii]] <- gIntersection(shape[i,], SP);
+      row.names(out[[ii]]) <- 
+        row.names(shape)[i]; ii <- ii+1}
+    out1 <- do.call("rbind", out)
+  return(out1)
+}
+
+bnds <- cbind(x=c(1150000,1150000,1190000,1190000,1150000),
+              y=c(1860000,1940000,1940000,1860000,1860000))##Draw a bounding box
+##Bounding box geometry has to match the original geometry of the shape to be cropped
+##This is kind of a pain, since our shape to dataframe function automatically chooses a new projection
+bike2 <- cropShapeToBB(bikes,bnds)
+bike2 <- SpatialLinesDataFrame(bike2,bikes@data)##Reassign the original data
+bikes.df <- shapeToDataFrame(bike2)
+city2 <- cropShapeToBB(city,bnds)
+city2 <- SpatialPolygonsDataFrame(city2,city@data)
+city.df <- shapeToDataFrame(city2)
+
+ggplot()+
+  geom_polygon(data=city.df,aes(long,lat,group=group),fill=NA,color='black')+
+  geom_path(data=bikes.df,aes(long,lat,group=group),color='grey')+
+  geom_point(data=divvy,aes(longitude,latitude),color='red')+
+  mapTheme+
+  coord_fixed()
+end.rcode-->
+
+<p>still pretty boring... let's get some other features added... maybe some water features and some parks? Let's also add detail about bike path types (finished or not). We want some detail in the legend for this final map, so for clarity, we want to include the legend (we make the title more clear).</p>
+
+<!--begin.rcode
+water <- readOGR("C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS",'Hydro')
+water2 <- cropShapeToBB(water,bnds)
+##Need to limit data to the rows saved in the cropped frame
+water.data <- water[which(row.names(water) %in% row.names(water2)),]@data
+water2 <- SpatialPolygonsDataFrame(water2,water.data)
+water.df <- shapeToDataFrame(water2)
+
+parks <- readOGR("C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS",'parks')
+parks2 <- cropShapeToBB(parks,bnds)
+parks.data <- parks[which(row.names(parks) %in% row.names(parks2)),]@data
+parks2 <- SpatialPolygonsDataFrame(parks2,parks.data)
+parks.df <- shapeToDataFrame(parks2)
+
+bikes.df$Built <- 'Built'
+bikes.df$Built[grepl("PROPOSED",bikes.df$BIKEROUTE)] <- "Planned"
+
+end.rcode-->
+
+<!--begin.rcode fig.width=8, fig.height=10
+ggplot()+
+  geom_polygon(data=water.df,aes(long,lat,group=group),color='blue',fill='blue')+
+  #geom_polygon(data=city.df,aes(long,lat,group=group),fill=NA,color='black')+
+  geom_polygon(data=parks.df,aes(long,lat,group=group),fill='green',color='green')+
+  geom_path(data=bikes.df,aes(long,lat,group=group,linetype=Built),color='grey',size=1)+
+  geom_point(data=divvy,aes(longitude,latitude),color='red')+
+  ggtitle("Map of Chicago Divvy Stations and Bike Paths")+
+  theme_bw()+
+    theme(panel.border=element_blank(),
+        panel.grid=element_blank(),
+        axis.text=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank())+
+  scale_linetype_discrete(name="Status of\nBike path")+
+  coord_fixed()
+
+end.rcode-->
+
+
+
+</body>
+</html>

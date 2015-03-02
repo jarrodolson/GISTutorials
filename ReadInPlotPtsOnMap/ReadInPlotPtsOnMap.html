@@ -1,0 +1,516 @@
+<html>
+
+<head>
+<style type="text/css">
+.knitr.inline {
+  background-color: #f7f7f7;
+  border:solid 1px #B0B0B0;
+}
+.error {
+	font-weight: bold;
+	color: #FF0000;
+},
+.warning {
+	font-weight: bold;
+}
+.message {
+	font-style: italic;
+}
+.source, .output, .warning, .error, .message {
+	padding: 0em 1em;
+  border:solid 1px #F7F7F7;
+}
+.source {
+  background-color: #f5f5f5;
+}
+.rimage.left {
+  text-align: left;
+}
+.rimage.right {
+  text-align: right;
+}
+.rimage.center {
+  text-align: center;
+}
+.hl.num {
+  color: #AF0F91;
+}
+.hl.str {
+  color: #317ECC;
+}
+.hl.com {
+  color: #AD95AF;
+  font-style: italic;
+}
+.hl.opt {
+  color: #000000;
+}
+.hl.std {
+  color: #585858;
+}
+.hl.kwa {
+  color: #295F94;
+  font-weight: bold;
+}
+.hl.kwb {
+  color: #B05A65;
+}
+.hl.kwc {
+  color: #55aa55;
+}
+.hl.kwd {
+  color: #BC5A65;
+  font-weight: bold;
+}
+</style>
+<title>GIS Tutorial 1</title>
+</head>
+
+<body>
+
+<h1>Reading in Data with Points and Shapes</h1>
+<p>In this tutorial, we walk through loading both shape files and points data and plot it using ggplot2. Once in the proper form, ggplot2 allows for incredible options in plotting data, but it can be a bit of a challenge.</p>
+<p>First, we will read in our libraries.</p>
+
+<div class="chunk" id="unnamed-chunk-1"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">require</span><span class="hl std">(ggplot2)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: ggplot2
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">require</span><span class="hl std">(rgdal)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: rgdal
+## Loading required package: sp
+## rgdal: version: 0.8-16, (SVN revision 498)
+## Geospatial Data Abstraction Library extensions to R successfully loaded
+## Loaded GDAL runtime: GDAL 1.10.1, released 2013/08/26
+## Path to GDAL shared files: C:/Users/jarrodanderin/Documents/R/win-library/3.0/rgdal/gdal
+## GDAL does not use iconv for recoding strings.
+## Loaded PROJ.4 runtime: Rel. 4.8.0, 6 March 2012, [PJ_VERSION: 480]
+## Path to PROJ.4 shared files: C:/Users/jarrodanderin/Documents/R/win-library/3.0/rgdal/proj
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">require</span><span class="hl std">(sp)</span>
+<span class="hl kwd">require</span><span class="hl std">(raster)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: raster
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">require</span><span class="hl std">(plyr)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: plyr
+</pre></div>
+</div></div>
+
+
+<p>Next, we will load in our shape file using the readOGR function of rgdal.</p>
+<div class="chunk" id="loadShape"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">shp</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">readOGR</span><span class="hl std">(</span><span class="hl str">&quot;C:/users/jarrodanderin/Documents/_RWork/_Datasets/tl_2010_us_state10&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;tl_2010_us_state10&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## OGR data source with driver: ESRI Shapefile 
+## Source: "C:/users/jarrodanderin/Documents/_RWork/_Datasets/tl_2010_us_state10", layer: "tl_2010_us_state10"
+## with 52 features and 14 fields
+## Feature type: wkbPolygon with 2 dimensions
+</pre></div>
+</div></div>
+
+
+<p>We can use R's base plotting to check if it read in.</p>
+
+<div class="chunk" id="unnamed-chunk-2"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">plot</span><span class="hl std">(shp)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-2.png" title="plot of chunk unnamed-chunk-2" alt="plot of chunk unnamed-chunk-2" class="plot" /></div></div>
+
+
+<p>Each polygon contains an attribute table, which can be accessed by looking at shp@data.</p>
+
+<div class="chunk" id="unnamed-chunk-3"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">head</span><span class="hl std">(shp</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   REGION10 DIVISION10 STATEFP10 STATENS10 GEOID10 STUSPS10       NAME10
+## 0        4          8        56  01779807      56       WY      Wyoming
+## 1        1          2        42  01779798      42       PA Pennsylvania
+## 2        2          3        39  01085497      39       OH         Ohio
+## 3        4          8        35  00897535      35       NM   New Mexico
+## 4        3          5        24  01714934      24       MD     Maryland
+## 5        1          1        44  01219835      44       RI Rhode Island
+##   LSAD10 MTFCC10 FUNCSTAT10   ALAND10  AWATER10  INTPTLAT10   INTPTLON10
+## 0     00   G4000          A 2.515e+11 1.864e+09 +42.9918024 -107.5419255
+## 1     00   G4000          A 1.159e+11 3.397e+09 +40.9042486 -077.8280624
+## 2     00   G4000          A 1.058e+11 1.027e+10 +40.4149297 -082.7119975
+## 3     00   G4000          A 3.142e+11 7.567e+08 +34.4391265 -106.1261511
+## 4     00   G4000          A 2.514e+10 6.990e+09 +38.9466584 -076.6744939
+## 5     00   G4000          A 2.678e+09 1.324e+09 +41.5978358 -071.5252895
+</pre></div>
+</div></div>
+
+
+<p>We can now see that we have state names, and can just drop the non-continental US.</p>
+
+<div class="chunk" id="unnamed-chunk-4"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">shp</span> <span class="hl kwb">&lt;-</span> <span class="hl std">shp[shp</span><span class="hl opt">$</span><span class="hl std">NAME10</span> <span class="hl opt">!=</span> <span class="hl str">&quot;Alaska&quot;</span> <span class="hl opt">&amp;</span> <span class="hl std">shp</span><span class="hl opt">$</span><span class="hl std">NAME10</span> <span class="hl opt">!=</span> <span class="hl str">&quot;Hawaii&quot;</span> <span class="hl opt">&amp;</span> <span class="hl std">shp</span><span class="hl opt">$</span><span class="hl std">NAME10</span> <span class="hl opt">!=</span> <span class="hl str">&quot;Puerto Rico&quot;</span><span class="hl std">,</span>
+    <span class="hl std">]</span>
+</pre></div>
+</div></div>
+
+
+
+<p>Obviously, we've got some awkward white space, affected by part of Alaska crossing into the right hand side of the map. Additionally, the data structure is not conducive to plotting. We need to turn it into a dataframe object to make it easier to work with. Additionally, it should be in a common projection with our points.</p>
+
+<div class="chunk" id="unnamed-chunk-5"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">shp</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">spTransform</span><span class="hl std">(shp,</span> <span class="hl kwd">CRS</span><span class="hl std">(</span><span class="hl str">&quot;+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0&quot;</span><span class="hl std">))</span>
+<span class="hl std">shp</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl opt">$</span><span class="hl std">id</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">rownames</span><span class="hl std">(shp</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">)</span>
+<span class="hl std">shp.points</span> <span class="hl kwb">=</span> <span class="hl kwd">fortify</span><span class="hl std">(shp,</span> <span class="hl kwc">region</span> <span class="hl std">=</span> <span class="hl str">&quot;id&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="message"><pre class="knitr r">## Loading required package: rgeos
+## rgeos version: 0.3-3, (SVN revision 437)
+##  GEOS runtime version: 3.4.2-CAPI-1.8.2 r3921 
+##  Polygon checking: TRUE
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">shp.df</span> <span class="hl kwb">=</span> <span class="hl kwd">join</span><span class="hl std">(shp.points, shp</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">,</span> <span class="hl kwc">by</span> <span class="hl std">=</span> <span class="hl str">&quot;id&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">head</span><span class="hl std">(shp.df)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##     long lat order  hole piece group id REGION10 DIVISION10 STATEFP10
+## 1 -108.6  45     1 FALSE     1   0.1  0        4          8        56
+## 2 -108.6  45     2 FALSE     1   0.1  0        4          8        56
+## 3 -108.6  45     3 FALSE     1   0.1  0        4          8        56
+## 4 -108.6  45     4 FALSE     1   0.1  0        4          8        56
+## 5 -108.6  45     5 FALSE     1   0.1  0        4          8        56
+## 6 -108.6  45     6 FALSE     1   0.1  0        4          8        56
+##   STATENS10 GEOID10 STUSPS10  NAME10 LSAD10 MTFCC10 FUNCSTAT10   ALAND10
+## 1  01779807      56       WY Wyoming     00   G4000          A 2.515e+11
+## 2  01779807      56       WY Wyoming     00   G4000          A 2.515e+11
+## 3  01779807      56       WY Wyoming     00   G4000          A 2.515e+11
+## 4  01779807      56       WY Wyoming     00   G4000          A 2.515e+11
+## 5  01779807      56       WY Wyoming     00   G4000          A 2.515e+11
+## 6  01779807      56       WY Wyoming     00   G4000          A 2.515e+11
+##    AWATER10  INTPTLAT10   INTPTLON10
+## 1 1.864e+09 +42.9918024 -107.5419255
+## 2 1.864e+09 +42.9918024 -107.5419255
+## 3 1.864e+09 +42.9918024 -107.5419255
+## 4 1.864e+09 +42.9918024 -107.5419255
+## 5 1.864e+09 +42.9918024 -107.5419255
+## 6 1.864e+09 +42.9918024 -107.5419255
+</pre></div>
+</div></div>
+
+
+
+
+<p>Now let's plot it using ggplot2 to see how we did</p>
+
+<div class="chunk" id="unnamed-chunk-6"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= shp.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span> <span class="hl kwc">fill</span> <span class="hl std">=</span> <span class="hl num">NA</span><span class="hl std">,</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;black&quot;</span><span class="hl std">)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-6.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" class="plot" /></div></div>
+
+
+<p>Obviously we are able to see that the map is now of just the United States. Looking at some of the options we used to plot, we see that we made a pretty boring plot. Also, we use a lot of grey with the base theme for ggplot. To avoid distortion, we use the command coord_fixed() to fix the coordinates with the actual map coordinates. Below, we add some features and get rid of formatting we don't need.</p>
+
+<div class="chunk" id="unnamed-chunk-7"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= shp.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group,</span> <span class="hl kwc">fill</span> <span class="hl std">= NAME10),</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;black&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">ggtitle</span><span class="hl std">(</span><span class="hl str">&quot;Map of the United States&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">theme_bw</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">theme</span><span class="hl std">(</span><span class="hl kwc">panel.border</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span>
+    <span class="hl kwc">panel.grid</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">axis.text</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">axis.text</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span>
+    <span class="hl kwc">axis.ticks</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">axis.title</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">legend.position</span> <span class="hl std">=</span> <span class="hl str">&quot;none&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span>
+    <span class="hl kwd">coord_fixed</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-7.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" class="plot" /></div></div>
+
+
+<p>Let's say for lack of something better to do, we wanted hot pink, visible borders. We change the polygon color (hot pink is #ff694b in the html color scale) and size (to 3, which is quite large). Also, for future use, we save the theme as a shortcut.</p>
+
+<div class="chunk" id="unnamed-chunk-8"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">mapTheme</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">theme_bw</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">theme</span><span class="hl std">(</span><span class="hl kwc">panel.border</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">panel.grid</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span>
+    <span class="hl kwc">axis.text</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">axis.text</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">axis.ticks</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span>
+    <span class="hl kwc">axis.title</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">legend.position</span> <span class="hl std">=</span> <span class="hl str">&quot;none&quot;</span><span class="hl std">)</span>
+<span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= shp.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group,</span> <span class="hl kwc">fill</span> <span class="hl std">= NAME10),</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;#ff694b&quot;</span><span class="hl std">,</span> <span class="hl kwc">size</span> <span class="hl std">=</span> <span class="hl num">3</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">ggtitle</span><span class="hl std">(</span><span class="hl str">&quot;Map of the United States&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl std">mapTheme</span> <span class="hl opt">+</span>
+    <span class="hl kwd">coord_fixed</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-8.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" class="plot" /></div></div>
+
+
+<p>Now that we have a map that we can fiddle with, we can think about doing a better job with the map. As you can see, the map combines Michigan, hiding the Great Lakes, which is not great. A wonderful resource of GIS data is available from <a href='http://www.naturalearthdata.org'>Natural Earth Data</a>. I downloaded their quick start kit. First, we load the 10m cultural shapefile for states and provinces. It's got the whole world, so we'll obviously want to filter it down.
+
+<div class="chunk" id="unnamed-chunk-9"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">shp</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">readOGR</span><span class="hl std">(</span><span class="hl str">&quot;C:/users/jarrodanderin/Documents/_RWork/_Datasets/Natural_Earth_quick_start/10m_cultural&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;ne_10m_admin_1_states_provinces_shp&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## OGR data source with driver: ESRI Shapefile 
+## Source: "C:/users/jarrodanderin/Documents/_RWork/_Datasets/Natural_Earth_quick_start/10m_cultural", layer: "ne_10m_admin_1_states_provinces_shp"
+## with 3671 features and 40 fields
+## Feature type: wkbPolygon with 2 dimensions
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">head</span><span class="hl std">(shp</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">)</span>  <span class="hl com">#field with country is 'admin'</span>
+</pre></div>
+<div class="output"><pre class="knitr r">##   adm1_code Shape_Leng Shape_Area diss_me adm1_code_ iso_3166_2 wikipedia
+## 0   ABW+00?     0.6524    0.01412   10000    ABW+00?        AW-      <NA>
+## 1  AFG-1741     7.0273    2.03728    1741   AFG-1741        AF-      <NA>
+## 2  AFG-1742    14.2238    5.42144    1742   AFG-1742        AF-      <NA>
+## 3  AFG-1743     7.6222    1.74640    1743   AFG-1743        AF-      <NA>
+## 4  AFG-1744     7.4299    1.61541    1744   AFG-1744        AF-      <NA>
+## 5  AFG-1745     8.4387    2.07371    1745   AFG-1745        AF-      <NA>
+##   sr_sov_a3 sr_adm0_a3 iso_a2 adm0_sr admin0_lab
+## 0       NL1        ABW     AW       3          6
+## 1       AFG        AFG     AF       1          2
+## 2       AFG        AFG     AF       1          2
+## 3       AFG        AFG     AF       1          2
+## 4       AFG        AFG     AF       1          2
+## 5       AFG        AFG     AF       1          2
+##                         name                  name_alt name_local    type
+## 0 ABW-00 (Aruba aggregation)                      <NA>       <NA>    <NA>
+## 1                    Badghis  Badghes|Badghisat|Badgis       <NA> Velayat
+## 2                      Hirat                      <NA>       <NA> Velayat
+## 3                     Bamyan                      <NA>       <NA> Velayat
+## 4                      Balkh Balh|Mazar-i-Sharif|Mazar       <NA> Velayat
+## 5                     Faryab   Fariab|Maimana|Meymaneh       <NA> Velayat
+##    type_en code_local code_hasc note hasc_maybe region region_cod
+## 0     <NA>       <NA>      <NA> <NA>       <NA>   <NA>       <NA>
+## 1 Province       <NA>     AF.BG <NA>       <NA>   <NA>       <NA>
+## 2 Province       <NA>     AF.HR <NA>       <NA>   <NA>       <NA>
+## 3 Province       <NA>     AF.BM <NA>       <NA>   <NA>       <NA>
+## 4 Province       <NA>     AF.BK <NA>       <NA>   <NA>       <NA>
+## 5 Province       <NA>     AF.FB <NA>       <NA>   <NA>       <NA>
+##   region_big big_code provnum_ne gadm_level check_me scalerank datarank
+## 0       <NA>     <NA>          0          0        0        10       10
+## 1       <NA>     <NA>          7          1        0         5        5
+## 2       <NA>     <NA>          8          1        0         5        5
+## 3       <NA>     <NA>         23          1        0         5        5
+## 4       <NA>     <NA>         33          1        0         5        5
+## 5       <NA>     <NA>          6          1        0         5        5
+##   abbrev postal area_sqkm sameascity labelrank          featurecla
+## 0   <NA>   <NA>         0        -99        20 Admin-1 aggregation
+## 1   <NA>     BG         0        -99         5  Admin-1 scale rank
+## 2   <NA>     HR         0          7         7  Admin-1 scale rank
+## 3   <NA>     BM         0          9         9  Admin-1 scale rank
+## 4   <NA>     BK         0        -99         5  Admin-1 scale rank
+## 5   <NA>     FB         0        -99         5  Admin-1 scale rank
+##         admin name_len mapcolor9 mapcolor13
+## 0       Aruba       26         2          9
+## 1 Afghanistan        7         8          7
+## 2 Afghanistan        5         8          7
+## 3 Afghanistan        6         8          7
+## 4 Afghanistan        5         8          7
+## 5 Afghanistan        6         8          7
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">shp</span> <span class="hl kwb">&lt;-</span> <span class="hl std">shp[shp</span><span class="hl opt">$</span><span class="hl std">admin</span> <span class="hl opt">==</span> <span class="hl str">&quot;United States of America&quot;</span> <span class="hl opt">&amp;</span> <span class="hl std">shp</span><span class="hl opt">$</span><span class="hl std">name</span> <span class="hl opt">!=</span> <span class="hl str">&quot;Alaska&quot;</span> <span class="hl opt">&amp;</span>
+    <span class="hl std">shp</span><span class="hl opt">$</span><span class="hl std">name</span> <span class="hl opt">!=</span> <span class="hl str">&quot;Hawaii&quot;</span><span class="hl std">, ]</span>
+</pre></div>
+</div></div>
+
+
+<p>Plotting it using base r, we can see tht it is still missing the great lakes. so we'll download another layer for water bodies.</p>
+
+<div class="chunk" id="unnamed-chunk-10"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">plot</span><span class="hl std">(shp)</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-10.png" title="plot of chunk unnamed-chunk-10" alt="plot of chunk unnamed-chunk-10" class="plot" /></div></div>
+
+
+<div class="chunk" id="unnamed-chunk-11"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">lakes</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">readOGR</span><span class="hl std">(</span><span class="hl str">&quot;C:/users/jarrodanderin/Documents/_RWork/_Datasets/Natural_Earth_quick_start/10m_physical&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;ne_10m_lakes&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## OGR data source with driver: ESRI Shapefile 
+## Source: "C:/users/jarrodanderin/Documents/_RWork/_Datasets/Natural_Earth_quick_start/10m_physical", layer: "ne_10m_lakes"
+## with 1343 features and 10 fields
+## Feature type: wkbPolygon with 2 dimensions
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">lakes</span> <span class="hl kwb">&lt;-</span> <span class="hl std">lakes[</span><span class="hl kwd">which</span><span class="hl std">(lakes</span><span class="hl opt">$</span><span class="hl std">name_alt</span> <span class="hl opt">==</span> <span class="hl str">&quot;Great Lakes&quot;</span><span class="hl std">), ]</span>
+</pre></div>
+</div></div>
+
+
+<p>Since we'll be doing a bunch of converting shapes to data frames, let's make a function out of that.</p>
+
+<div class="chunk" id="unnamed-chunk-12"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">shapeToDataFrame</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">shape</span><span class="hl std">) {</span>
+    <span class="hl std">shape</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">spTransform</span><span class="hl std">(shape,</span> <span class="hl kwd">CRS</span><span class="hl std">(</span><span class="hl str">&quot;+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0&quot;</span><span class="hl std">))</span>
+    <span class="hl std">shape</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl opt">$</span><span class="hl std">id</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">rownames</span><span class="hl std">(shape</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">)</span>
+    <span class="hl std">shape.points</span> <span class="hl kwb">=</span> <span class="hl kwd">fortify</span><span class="hl std">(shape,</span> <span class="hl kwc">region</span> <span class="hl std">=</span> <span class="hl str">&quot;id&quot;</span><span class="hl std">)</span>
+    <span class="hl std">shape.df</span> <span class="hl kwb">=</span> <span class="hl kwd">join</span><span class="hl std">(shape.points, shape</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">,</span> <span class="hl kwc">by</span> <span class="hl std">=</span> <span class="hl str">&quot;id&quot;</span><span class="hl std">)</span>
+<span class="hl std">}</span>
+<span class="hl std">shp.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(shp)</span>
+<span class="hl std">lakes.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(lakes)</span>
+</pre></div>
+</div></div>
+
+
+<p>Now we plot, since the great lakes should overlay the lines of Michigan, we'll plot the states first, then the lakes on top.</p>
+
+<div class="chunk" id="unnamed-chunk-13"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= shp.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group,</span> <span class="hl kwc">fill</span> <span class="hl std">= name),</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;black&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= lakes.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span>
+    <span class="hl kwc">fill</span> <span class="hl std">=</span> <span class="hl str">&quot;Blue&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">ggtitle</span><span class="hl std">(</span><span class="hl str">&quot;Map of the United States&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl std">mapTheme</span> <span class="hl opt">+</span> <span class="hl kwd">coord_fixed</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-13.png" title="plot of chunk unnamed-chunk-13" alt="plot of chunk unnamed-chunk-13" class="plot" /></div></div>
+
+
+<p>The projection on this makes the Great Lakes Region look ridiculous. Let's figure out how to limit the size of the map so that distortion is less of a problem. First, we create a vector of states in a given region. Then we filter the shp with that region to shrink our polygons of states to just those we care about.</p>
+
+<div class="chunk" id="unnamed-chunk-14"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">greatlakesregion</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl str">&quot;Minnesota&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;Michigan&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;Illinois&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;Wisconsin&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;Ohio&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;Indiana&quot;</span><span class="hl std">,</span> <span class="hl str">&quot;Ohio&quot;</span><span class="hl std">)</span>  <span class="hl com">##Don't want to bother with New England</span>
+<span class="hl std">shp</span> <span class="hl kwb">&lt;-</span> <span class="hl std">shp[</span><span class="hl kwd">which</span><span class="hl std">(shp</span><span class="hl opt">$</span><span class="hl std">name</span> <span class="hl opt">%in%</span> <span class="hl std">greatlakesregion), ]</span>
+<span class="hl std">shp.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(shp)</span>
+</pre></div>
+</div></div>
+
+
+<div class="chunk" id="unnamed-chunk-15"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= shp.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group,</span> <span class="hl kwc">fill</span> <span class="hl std">= name),</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;black&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= lakes.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span>
+    <span class="hl kwc">fill</span> <span class="hl std">=</span> <span class="hl str">&quot;Blue&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">ggtitle</span><span class="hl std">(</span><span class="hl str">&quot;Map of the United States&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl std">mapTheme</span> <span class="hl opt">+</span> <span class="hl kwd">coord_fixed</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-15.png" title="plot of chunk unnamed-chunk-15" alt="plot of chunk unnamed-chunk-15" class="plot" /></div></div>
+
+
+<p>now you were thinking that we would be doing both shapefiles and point data. For this section, we're going to use different datasets. We'll be looking at Divvy bike stations in Chicago. We get our shapefiles from <a href='http://www.cityofchicago.org/city/en/depts/doit/supp_info/gis_data.html'>Chicago's GIS repository.</a> We're going to use the city boundary layer, and the bike routes layer, and then we're going to plot the Divvy bike stations.</p>
+
+<div class="chunk" id="unnamed-chunk-16"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">city</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">readOGR</span><span class="hl std">(</span><span class="hl str">&quot;C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;City_Boundary&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## OGR data source with driver: ESRI Shapefile 
+## Source: "C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS", layer: "City_Boundary"
+## with 1 features and 4 fields
+## Feature type: wkbMultiPolygon with 2 dimensions
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">city.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(city)</span>
+<span class="hl std">bikes</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">readOGR</span><span class="hl std">(</span><span class="hl str">&quot;C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;Bike_Routes&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## OGR data source with driver: ESRI Shapefile 
+## Source: "C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS", layer: "Bike_Routes"
+## with 699 features and 12 fields
+## Feature type: wkbLineString with 2 dimensions
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">bikes.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(bikes)</span>
+<span class="hl std">divvy</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">read.csv</span><span class="hl std">(</span><span class="hl str">&quot;C:/users/jarrodanderin/Documents/_RWork/_Datasets/Divvy_Stations_Trips_2013/Divvy_Stations_Trips_2013/Divvy_Stations_2013.csv&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">stringsAsFactors</span> <span class="hl std">=</span> <span class="hl num">FALSE</span><span class="hl std">)</span>
+</pre></div>
+</div></div>
+
+
+<div class="chunk" id="unnamed-chunk-17"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= city.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_path</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= bikes.df,</span>
+    <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_point</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= divvy,</span> <span class="hl kwd">aes</span><span class="hl std">(</span><span class="hl kwc">x</span> <span class="hl std">= latitude,</span>
+    <span class="hl kwc">y</span> <span class="hl std">= longitude),</span> <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;red&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">coord_fixed</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-17.png" title="plot of chunk unnamed-chunk-17" alt="plot of chunk unnamed-chunk-17" class="plot" /></div></div>
+
+
+<p>What the hell? This is due to incorrect projection mapping. If we put the ggplot fomatting back in there and plot just the polygon, we can see our problem (if we realize the points are in latitude and longitude).</p>
+
+<div class="chunk" id="unnamed-chunk-18"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">ggplot</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= city.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group))</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-18.png" title="plot of chunk unnamed-chunk-18" alt="plot of chunk unnamed-chunk-18" class="plot" /></div></div>
+
+
+<p>The x-y combo for the city map is in a different projection, so we need to convert the points to the appropriate projection (thanks to <a href='http://zevross.com/blog/2014/07/16/mapping-in-r-using-the-ggplot2-package/'>Zevross Blog</a> for this pointer).</p>
+
+<div class="chunk" id="unnamed-chunk-19"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">class</span><span class="hl std">(divvy)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] "data.frame"
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl kwd">coordinates</span><span class="hl std">(divvy)</span> <span class="hl kwb">&lt;-</span> <span class="hl opt">~</span><span class="hl std">longitude</span> <span class="hl opt">+</span> <span class="hl std">latitude</span>  <span class="hl com">##Makes it into a spatialPointsDataFrame</span>
+<span class="hl kwd">class</span><span class="hl std">(divvy)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## [1] "SpatialPointsDataFrame"
+## attr(,"package")
+## [1] "sp"
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl com">## We assume that the lat and long are in NAD83 projection</span>
+<span class="hl kwd">proj4string</span><span class="hl std">(divvy)</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">CRS</span><span class="hl std">(</span><span class="hl str">&quot;+proj=longlat +datum=NAD83&quot;</span><span class="hl std">)</span>
+<span class="hl std">divvy</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">spTransform</span><span class="hl std">(divvy,</span> <span class="hl kwd">CRS</span><span class="hl std">(</span><span class="hl str">&quot;+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0&quot;</span><span class="hl std">))</span>
+<span class="hl std">divvy</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">data.frame</span><span class="hl std">(divvy)</span>  <span class="hl com">##ggplot expects a datafrmae, not a spatialpoints dataframe</span>
+</pre></div>
+</div></div>
+
+
+<p>Now we should be able to plot.</p>
+
+<div class="chunk" id="unnamed-chunk-20"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= city.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span> <span class="hl kwc">fill</span> <span class="hl std">=</span> <span class="hl num">NA</span><span class="hl std">,</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;black&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">geom_path</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= bikes.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">geom_point</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= divvy,</span> <span class="hl kwd">aes</span><span class="hl std">(longitude, latitude),</span> <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;red&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span>
+    <span class="hl com"># mapTheme+</span>
+<span class="hl kwd">coord_fixed</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-20.png" title="plot of chunk unnamed-chunk-20" alt="plot of chunk unnamed-chunk-20" class="plot" /></div></div>
+
+
+<p>That worked, but its not very informative. We need to zoom in. Unfortunately, just using xlim and ylim excludes every line (i.e. bike path) that does not start and stop inside the boundaries of the plot. So we need to crop the lines and the polygons appropriately. We use some code copied from <a href='https://stat.ethz.ch/pipermail/r-sig-geo/2012-June/015340.html'>a mailing list</a>. We'll set this up as a function for clarity.</p>
+
+<div class="chunk" id="unnamed-chunk-21"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl com"># https://stat.ethz.ch/pipermail/r-sig-geo/2012-June/015340.html</span>
+
+
+<span class="hl std">cropShapeToBB</span> <span class="hl kwb">&lt;-</span> <span class="hl kwa">function</span><span class="hl std">(</span><span class="hl kwc">shape</span><span class="hl std">,</span> <span class="hl kwc">boundingbox</span><span class="hl std">) {</span>
+    <span class="hl std">SP</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">SpatialPolygons</span><span class="hl std">(</span><span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwd">Polygons</span><span class="hl std">(</span><span class="hl kwd">list</span><span class="hl std">(</span><span class="hl kwd">Polygon</span><span class="hl std">(bnds)),</span> <span class="hl str">&quot;1&quot;</span><span class="hl std">)),</span> <span class="hl kwc">proj4string</span> <span class="hl std">=</span> <span class="hl kwd">CRS</span><span class="hl std">(</span><span class="hl kwd">proj4string</span><span class="hl std">(shape)))</span>  <span class="hl com">##Match projection to the layer we're cropping</span>
+    <span class="hl std">gI</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">gIntersects</span><span class="hl std">(shape, SP,</span> <span class="hl kwc">byid</span> <span class="hl std">=</span> <span class="hl num">TRUE</span><span class="hl std">)</span>  <span class="hl com">##Find intersection, and then go through and trim each line.</span>
+    <span class="hl std">out</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">vector</span><span class="hl std">(</span><span class="hl kwc">mode</span> <span class="hl std">=</span> <span class="hl str">&quot;list&quot;</span><span class="hl std">,</span> <span class="hl kwc">length</span> <span class="hl std">=</span> <span class="hl kwd">length</span><span class="hl std">(</span><span class="hl kwd">which</span><span class="hl std">(gI)))</span>
+    <span class="hl std">ii</span> <span class="hl kwb">&lt;-</span> <span class="hl num">1</span>
+    <span class="hl kwa">for</span> <span class="hl std">(i</span> <span class="hl kwa">in</span> <span class="hl kwd">seq</span><span class="hl std">(</span><span class="hl kwc">along</span> <span class="hl std">= gI))</span> <span class="hl kwa">if</span> <span class="hl std">(gI[i]) {</span>
+        <span class="hl std">out[[ii]]</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">gIntersection</span><span class="hl std">(shape[i, ], SP)</span>
+        <span class="hl kwd">row.names</span><span class="hl std">(out[[ii]])</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">row.names</span><span class="hl std">(shape)[i]</span>
+        <span class="hl std">ii</span> <span class="hl kwb">&lt;-</span> <span class="hl std">ii</span> <span class="hl opt">+</span> <span class="hl num">1</span>
+    <span class="hl std">}</span>
+    <span class="hl std">out1</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">do.call</span><span class="hl std">(</span><span class="hl str">&quot;rbind&quot;</span><span class="hl std">, out)</span>
+    <span class="hl kwd">return</span><span class="hl std">(out1)</span>
+<span class="hl std">}</span>
+
+<span class="hl std">bnds</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">cbind</span><span class="hl std">(</span><span class="hl kwc">x</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1150000</span><span class="hl std">,</span> <span class="hl num">1150000</span><span class="hl std">,</span> <span class="hl num">1190000</span><span class="hl std">,</span> <span class="hl num">1190000</span><span class="hl std">,</span> <span class="hl num">1150000</span><span class="hl std">),</span> <span class="hl kwc">y</span> <span class="hl std">=</span> <span class="hl kwd">c</span><span class="hl std">(</span><span class="hl num">1860000</span><span class="hl std">,</span>
+    <span class="hl num">1940000</span><span class="hl std">,</span> <span class="hl num">1940000</span><span class="hl std">,</span> <span class="hl num">1860000</span><span class="hl std">,</span> <span class="hl num">1860000</span><span class="hl std">))</span>  <span class="hl com">##Draw a bounding box</span>
+<span class="hl com">## Bounding box geometry has to match the original geometry of the shape to</span>
+<span class="hl com">## be cropped This is kind of a pain, since our shape to dataframe function</span>
+<span class="hl com">## automatically chooses a new projection</span>
+<span class="hl std">bike2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">cropShapeToBB</span><span class="hl std">(bikes, bnds)</span>
+<span class="hl std">bike2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">SpatialLinesDataFrame</span><span class="hl std">(bike2, bikes</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">)</span>  <span class="hl com">##Reassign the original data</span>
+<span class="hl std">bikes.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(bike2)</span>
+<span class="hl std">city2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">cropShapeToBB</span><span class="hl std">(city, bnds)</span>
+<span class="hl std">city2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">SpatialPolygonsDataFrame</span><span class="hl std">(city2, city</span><span class="hl opt">@</span><span class="hl kwc">data</span><span class="hl std">)</span>
+<span class="hl std">city.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(city2)</span>
+
+<span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= city.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span> <span class="hl kwc">fill</span> <span class="hl std">=</span> <span class="hl num">NA</span><span class="hl std">,</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;black&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">geom_path</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= bikes.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">geom_point</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= divvy,</span> <span class="hl kwd">aes</span><span class="hl std">(longitude, latitude),</span> <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;red&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span>
+    <span class="hl std">mapTheme</span> <span class="hl opt">+</span> <span class="hl kwd">coord_fixed</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-21.png" title="plot of chunk unnamed-chunk-21" alt="plot of chunk unnamed-chunk-21" class="plot" /></div></div>
+
+
+<p>still pretty boring... let's get some other features added... maybe some water features and some parks? Let's also add detail about bike path types (finished or not). We want some detail in the legend for this final map, so for clarity, we want to include the legend (we make the title more clear).</p>
+
+<div class="chunk" id="unnamed-chunk-22"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl std">water</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">readOGR</span><span class="hl std">(</span><span class="hl str">&quot;C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;Hydro&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## OGR data source with driver: ESRI Shapefile 
+## Source: "C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS", layer: "Hydro"
+## with 605 features and 6 fields
+## Feature type: wkbPolygon with 2 dimensions
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">water2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">cropShapeToBB</span><span class="hl std">(water, bnds)</span>
+<span class="hl com">## Need to limit data to the rows saved in the cropped frame</span>
+<span class="hl std">water.data</span> <span class="hl kwb">&lt;-</span> <span class="hl std">water[</span><span class="hl kwd">which</span><span class="hl std">(</span><span class="hl kwd">row.names</span><span class="hl std">(water)</span> <span class="hl opt">%in%</span> <span class="hl kwd">row.names</span><span class="hl std">(water2)), ]</span><span class="hl opt">@</span><span class="hl kwc">data</span>
+<span class="hl std">water2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">SpatialPolygonsDataFrame</span><span class="hl std">(water2, water.data)</span>
+<span class="hl std">water.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(water2)</span>
+
+<span class="hl std">parks</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">readOGR</span><span class="hl std">(</span><span class="hl str">&quot;C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS&quot;</span><span class="hl std">,</span>
+    <span class="hl str">&quot;parks&quot;</span><span class="hl std">)</span>
+</pre></div>
+<div class="output"><pre class="knitr r">## OGR data source with driver: ESRI Shapefile 
+## Source: "C:/users/jarrodanderin/Documents/_RWork/_Datasets/ChicagoGIS", layer: "parks"
+## with 572 features and 5 fields
+## Feature type: wkbPolygon with 2 dimensions
+</pre></div>
+<div class="source"><pre class="knitr r"><span class="hl std">parks2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">cropShapeToBB</span><span class="hl std">(parks, bnds)</span>
+<span class="hl std">parks.data</span> <span class="hl kwb">&lt;-</span> <span class="hl std">parks[</span><span class="hl kwd">which</span><span class="hl std">(</span><span class="hl kwd">row.names</span><span class="hl std">(parks)</span> <span class="hl opt">%in%</span> <span class="hl kwd">row.names</span><span class="hl std">(parks2)), ]</span><span class="hl opt">@</span><span class="hl kwc">data</span>
+<span class="hl std">parks2</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">SpatialPolygonsDataFrame</span><span class="hl std">(parks2, parks.data)</span>
+<span class="hl std">parks.df</span> <span class="hl kwb">&lt;-</span> <span class="hl kwd">shapeToDataFrame</span><span class="hl std">(parks2)</span>
+
+<span class="hl std">bikes.df</span><span class="hl opt">$</span><span class="hl std">Built</span> <span class="hl kwb">&lt;-</span> <span class="hl str">&quot;Built&quot;</span>
+<span class="hl std">bikes.df</span><span class="hl opt">$</span><span class="hl std">Built[</span><span class="hl kwd">grepl</span><span class="hl std">(</span><span class="hl str">&quot;PROPOSED&quot;</span><span class="hl std">, bikes.df</span><span class="hl opt">$</span><span class="hl std">BIKEROUTE)]</span> <span class="hl kwb">&lt;-</span> <span class="hl str">&quot;Planned&quot;</span>
+</pre></div>
+</div></div>
+
+
+<div class="chunk" id="unnamed-chunk-23"><div class="rcode"><div class="source"><pre class="knitr r"><span class="hl kwd">ggplot</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= water.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span> <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;blue&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">fill</span> <span class="hl std">=</span> <span class="hl str">&quot;blue&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl com"># geom_polygon(data=city.df,aes(long,lat,group=group),fill=NA,color='black')+</span>
+<span class="hl kwd">geom_polygon</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= parks.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group),</span> <span class="hl kwc">fill</span> <span class="hl std">=</span> <span class="hl str">&quot;green&quot;</span><span class="hl std">,</span>
+    <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;green&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">geom_path</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= bikes.df,</span> <span class="hl kwd">aes</span><span class="hl std">(long, lat,</span> <span class="hl kwc">group</span> <span class="hl std">= group,</span>
+    <span class="hl kwc">linetype</span> <span class="hl std">= Built),</span> <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;grey&quot;</span><span class="hl std">,</span> <span class="hl kwc">size</span> <span class="hl std">=</span> <span class="hl num">1</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">geom_point</span><span class="hl std">(</span><span class="hl kwc">data</span> <span class="hl std">= divvy,</span>
+    <span class="hl kwd">aes</span><span class="hl std">(longitude, latitude),</span> <span class="hl kwc">color</span> <span class="hl std">=</span> <span class="hl str">&quot;red&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span> <span class="hl kwd">ggtitle</span><span class="hl std">(</span><span class="hl str">&quot;Map of Chicago Divvy Stations and Bike Paths&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span>
+    <span class="hl kwd">theme_bw</span><span class="hl std">()</span> <span class="hl opt">+</span> <span class="hl kwd">theme</span><span class="hl std">(</span><span class="hl kwc">panel.border</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">panel.grid</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span>
+    <span class="hl kwc">axis.text</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">axis.text</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span> <span class="hl kwc">axis.ticks</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">(),</span>
+    <span class="hl kwc">axis.title</span> <span class="hl std">=</span> <span class="hl kwd">element_blank</span><span class="hl std">())</span> <span class="hl opt">+</span> <span class="hl kwd">scale_linetype_discrete</span><span class="hl std">(</span><span class="hl kwc">name</span> <span class="hl std">=</span> <span class="hl str">&quot;Status of\nBike path&quot;</span><span class="hl std">)</span> <span class="hl opt">+</span>
+    <span class="hl kwd">coord_fixed</span><span class="hl std">()</span>
+</pre></div>
+</div><div class="rimage default"><img src="figure/unnamed-chunk-23.png" title="plot of chunk unnamed-chunk-23" alt="plot of chunk unnamed-chunk-23" class="plot" /></div></div>
+
+
+
+
+</body>
+</html>

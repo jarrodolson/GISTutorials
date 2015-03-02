@@ -1,0 +1,17 @@
+{
+    "contents" : "<html>\n\n<head>\n<title>GIS Tutorial 2</title>\n</head>\n\n<body>\n\n<h1>Reading in Data from Raster</h1>\n<p>GIS data is often only available as a raster.</p>\n\n<!--begin.rcode\nsummary(cars)\nend.rcode-->\n\n<p>You can also embed plots, for example:</p>\n\n<!--begin.rcode fig.width=7, fig.height=6\nplot(cars)\nend.rcode-->\n\n</body>\n</html>\n",
+    "created" : 1425222793407.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3943862913",
+    "id" : "E03D445",
+    "lastKnownWriteTime" : 1425244620,
+    "path" : "~/_RWork/GIS Tutorials/ReadInRasterPlot.Rhtml",
+    "project_path" : "ReadInRasterPlot.Rhtml",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_html"
+}
