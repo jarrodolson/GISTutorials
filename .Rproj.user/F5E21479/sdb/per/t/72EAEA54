@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1425639253263.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "72EAEA54",
+    "lastKnownWriteTime" : 7741240722073845761,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "regions.wa.data",
+        "contentUrl" : "content?title=regions.wa.data&file=9e123e86c2b34138910890145679eb16.htm",
+        "displayedObservations" : "6",
+        "displayedVariables" : 11,
+        "totalObservations" : "6",
+        "variables" : "6"
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}

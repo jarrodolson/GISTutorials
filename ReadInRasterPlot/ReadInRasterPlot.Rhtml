@@ -1,0 +1,154 @@
+<html>
+
+<head>
+<title>GIS Tutorial 2</title>
+</head>
+
+<body>
+
+<h1>Reading in Data from Raster</h1>
+<p>GIS data is often only available as a raster.</p>
+
+<!--begin.rcode
+require(ggplot2)
+require(rgdal)
+require(sp)
+require(raster)
+require(plyr)
+
+mapTheme <- theme_bw()+
+    theme(panel.border=element_blank(),
+        panel.grid=element_blank(),
+        axis.text=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        legend.position='none')
+
+shapeToDataFrame <- function(shape){
+  shape <- spTransform(shape,CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  shape@data$id <- rownames(shape@data)
+  shape.points = fortify(shape,region='id')
+  shape.df = join(shape.points, shape@data, by='id')
+}
+end.rcode-->
+
+<p>Reading in rasters is often as easy as the 'raster' command, but with other types of iles (i.e. those with projections incorporated), it might be necessary to use readGDAL</p>
+
+<!--begin.rcode
+myraster <- raster("../_Datasets/Natural_Earth_quick_start/50m_raster/NE1_50M_SR_W/NE1_50M_SR_W.tif")##Read raster - note: projection is wgs-84
+class(myraster)
+print(crs(myraster))
+end.rcode-->
+
+<!--begin.rcode fig.width=10, fig.height=7
+plot(myraster)
+end.rcode-->
+
+<p>This is a pretty big map, so let's make it more US focused... For examples sake, we will use a map with states in it, dissolve the states, and then use that to trim.</p>
+<!--begin.rcode fig.width=10,fig.height=8
+##Read in shape
+us <- readOGR('../_Datasets/Natural_Earth_quick_start/10m_cultural','ne_10m_admin_1_states_provinces_shp')
+us <- us[which(us$admin=='United States of America' & us$name!="Alaska" & us$name!="Hawaii"),]
+
+##first we dissolve
+us_new <- unionSpatialPolygons(us,IDs=us@data$admin)
+##Create a dataframe with the same names as the polygons in the dissolved object
+us_new.data <- as.data.frame(unique(us@data$admin),stringsAsFactors=FALSE)
+colnames(us_new.data) <- 'admin'
+rownames(us_new.data) <- us_new.data$admin
+us_new <- SpatialPolygonsDataFrame(us_new,us_new.data)##New shape file
+
+plot(us_new)
+end.rcode-->
+
+<!--begin.rcode fig.width=10, fig.height=8
+myraster.crop <- crop(myraster,extent(us_new),snap='out')##Crop raster to extent of shape
+plot(myraster.crop)
+end.rcode-->
+
+<!--begin.rcode fig.width=10, fig.height=8
+crop <- setValues(myraster.crop,NA)#Create new shape file with values==0 from raster
+us.r <- rasterize(us,crop)
+myraster.masked <- mask(myraster.crop,us.r)##Use raster to make merging easier
+map.p <- rasterToPoints(myraster.masked)
+df <- data.frame(map.p)
+colnames(df) <- c("Longitude","Latitude","MAP")
+states.df <- shapeToDataFrame(us)
+ggplot()+
+  geom_raster(data=df, aes(x=Longitude,y=Latitude,fill=MAP))+
+  geom_polygon(data=states.df, aes(x=long,y=lat,group=group),fill=NA,color='black')+
+  coord_fixed()+mapTheme
+end.rcode-->
+<p>Let's dive in even closer - Washington
+<!--begin.rcode fig.width=10, fig.height=8
+cropRasterToShape <- function(myRaster,myshape){
+  myraster.crop <- crop(myraster,extent(myshape),snap='out')##Crop raster to extent of shape
+  crop <- setValues(myraster.crop,NA)#Create new shape file with values==0 from raster
+  myshape.r <- rasterize(myshape,crop)
+  myraster.masked <- mask(myraster.crop,myshape.r)##Use raster to make merging easier
+  return(myraster.masked)
+}
+  
+prepRasterToPlot <- function(myraster){
+  map.p <- rasterToPoints(myraster)
+  df <- data.frame(map.p)
+  colnames(df) <- c("Longitude","Latitude","MAP")
+  return(df)
+}
+
+wa <- us[which(us$name=="Washington"),]
+wa.df <- shapeToDataFrame(wa)
+wa.r <- cropRasterToShape(us.r,wa)
+wa.df.r <- prepRasterToPlot(wa.r)
+marine <- readOGR('../_Datasets/Natural_Earth_quick_start/10m_physical','ne_10m_geography_marine_polys')
+psount <- marine[which(marine@data$name %in% c("Puget Sound","Strait of Juan de Fuca", "Rosario Strait","Bellingham Bay","Padilla Bay")),]
+
+psound.df <- shapeToDataFrame(psount)
+rivers <- readOGR('../_Datasets/Natural_Earth_quick_start/10m_physical','ne_10m_rivers_lake_centerlines')
+rivers.wa <- gIntersection(rivers, wa)
+rivers.wa.data <- as.data.frame(unique(rivers@data),stringsAsFactors=FALSE)
+
+rivers.wa <- SpatialLinesDataFrame(rivers.wa,rivers.wa.data)
+rivers.wa.df <- shapeToDataFrame(rivers.wa)
+
+lakes <- readOGR('../_Datasets/Natural_Earth_quick_start/10m_physical','ne_10m_lakes')
+lakes.wa <- gIntersection(lakes,wa,byid=TRUE)##Necessary for multiple polygons
+temp <- sapply(slot(lakes.wa, "polygons"), function(x) slot(x, "ID"))
+temp2 <- c()
+for(el in temp){
+  temp2 <- c(temp2,strsplit(el," ")[[1]])
+}
+lakes.wa.data <- as.data.frame(lakes@data,stringsAsFactors=FALSE)
+#lakes.wa.data$Insample <- as.vector(gIntersects(lakes,wa,byid=TRUE))
+lakes.wa.data <- lakes.wa.data[which(rownames(lakes.wa.data) %in% temp2),]
+#lakes.wa.data <- lakes.wa.data[which(rownames(lakes.wa.data) %in% rownames(lakes.wa)),]
+lakes.wa <- SpatialPolygonsDataFrame(lakes.wa,lakes.wa.data,match.ID=FALSE)
+lakes.wa.df <- shapetoDataFrame(lakes.wa)
+
+regions <- readOGR('../_Datasets/Natural_Earth_quick_start/10m_physical','ne_10m_geography_regions_polys')
+regions.wa <- gIntersection(regions,wa,byid=TRUE)
+temp <- sapply(slot(regions.wa,"polygons"), function(x) slot(x, 'ID'))
+temp2 <- c()
+for(el in temp){
+  temp2 <- c(temp2,strsplit(el,' ')[[1]])
+}
+regions.wa.data <- as.data.frame(regions@data,stringsAsFactors=FALSE)
+regions.wa.data <- regions.wa.data[which(rownames(regions.wa.data) %in% temp2),]
+regions.wa <- SpatialPolygonsDataFrame(regions.wa,regions.wa.data, match.ID=FALSE)
+regions.wa.df <- shapeToDataFrame(regions.wa)
+
+ggplot()+
+  geom_raster(data=wa.df.r, aes(x=Longitude, y=Latitude, fill=MAP))+
+  geom_polygon(data=wa, aes(x=long,y=lat,group=group),fill=NA,color='black')+
+  geom_path(data=rivers.wa.df, aes(x=long,y=lat,group=group), fill="Blue",color="Blue")+
+  geom_polygon(data=lakes.wa.df, aes(x=long,y=lat,group=group),fill='blue')+
+  geom_polygon(data=regions.wa.df, aes(x=long,y=lat,group=group),fill=NA,color='black')+
+  scale_fill_continuous(name="Relief",low="#006400",high="white")+
+  theme(panel.background=element_rect(fill='Blue'),
+        panel.grid=element_blank())
+end.rcode-->
+
+
+</body>
+</html>

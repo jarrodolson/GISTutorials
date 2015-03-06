@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1425635908190.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "5EB51A57",
+    "lastKnownWriteTime" : 7741240722073845761,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "lakes.wa",
+        "contentUrl" : "content?title=lakes.wa&file=0c8e382d7edd42c3b932c0ad74991e84.htm",
+        "displayedObservations" : 1,
+        "displayedVariables" : 100,
+        "totalObservations" : 1,
+        "variables" : 1343
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}

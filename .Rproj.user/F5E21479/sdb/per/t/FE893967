@@ -1,0 +1,22 @@
+{
+    "contents" : "",
+    "created" : 1425638679196.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "FE893967",
+    "lastKnownWriteTime" : 7741240722073845761,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "caption" : "lakes.wa.df",
+        "contentUrl" : "content?title=lakes.wa.df&file=c0502b5db1a245eebafeaf628de569a5.htm",
+        "displayedObservations" : 105,
+        "displayedVariables" : 17,
+        "totalObservations" : 105,
+        "variables" : 17
+    },
+    "source_on_save" : false,
+    "type" : "r_dataframe"
+}
