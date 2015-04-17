@@ -1,0 +1,148 @@
+<html>
+
+<head>
+<title>Tutorial with Database</title>
+</head>
+
+<body>
+
+<p>This tutorial will make use of a spatial database. Specifically, I have loaded the natural earth data into a post-gis database.</p>
+
+<!--begin.rcode
+library(RPostgreSQL)
+#library(RODBC)
+library(rgdal)
+library(rgeos)
+library(ggplot2)
+library(plyr)
+dsn = "PG:dbname='gis'"##Set dns name
+end.rcode-->
+
+<p>First, what tables are in that database?</p>
+
+<!--begin.rcode
+ogrListLayers(dsn)
+end.rcode-->
+
+<p>We can get a whole layer</p>
+
+<!--begin.rcode
+states <- readOGR(dsn,'ne_50m_admin_1_states_provinces_shp')
+end.rcode-->
+
+<p>Alternatively, we can use the database functionality and send a sql query. We need to do more post-processing, as far as converting into a spatial-x type of data.</p>
+<!--begin.rcode
+drv <- dbDriver("PostgreSQL")
+con <- dbConnect(drv, dbname='gis')
+q = "SELECT ST_AsText(geom) AS geom, name FROM ne_50m_admin_1_states_provinces_shp;"
+rs = dbSendQuery(con, q)
+df = fetch(rs, n=-1)
+end.rcode-->
+
+<p>Once it's been read-in, it needs to be converted into a spatial polygons dataframe. We use RGEOS' readWKT() function to read the well-known text.</p>
+
+<!--begin.rcode
+
+convertQueryToSPObj <- function(df, proj=4326, type='polygon'){
+  row.names(df) = 1:nrow(df)
+  df$gid <- row.names(df)
+  print(nrow(df))
+   
+  # Create spatial polygons
+  # To set the PROJ4 string, enter the EPSG SRID and uncomment the 
+  # following two lines:
+  EPSG = make_EPSG()
+  p4s = EPSG[which(EPSG$code == 4326), "prj4"]
+  for (i in seq(nrow(df))) {
+    if (i == 1) {
+      spTemp = readWKT(df$geom[i], df$gid[i], p4s)
+    }
+    else {
+      spTemp = rbind(
+        spTemp, readWKT(df$geom[i], df$gid[i], p4s)
+      )
+    }
+  }
+  if(type=='polygon'){
+    # Create SpatialPolygonsDataFrame, drop WKT field from attributes
+    spdfFinal = SpatialPolygonsDataFrame(spTemp, df[-1])
+  }
+  if(type=='lines'){
+    spdfFinal = SpatialLinesDataFrame(spTemp, df[-1])
+  }
+  return(spdfFinal)
+}
+
+states2 <- convertQueryToSPObj(df)
+
+end.rcode-->
+
+<p>Now, if we wanted to use SQL to its best effect, we could look at a single state.</p>
+
+<!--begin.rcode
+q <- "SELECT ST_AsText(geom) AS geom, gid, name FROM ne_50m_admin_1_states_provinces_shp WHERE (name='Washington');"
+rs = dbSendQuery(con, q)
+df = fetch(rs, n=-1)
+states3 <- convertQueryToSPObj(df)
+plot(states3)
+end.rcode-->
+
+<p>The real value in having a sql based tool, is the ability to combine layers of data. For example, if we wanted to look at rivers in Alabama, we might try this query.</p>
+
+<!--begin.rcode
+q <- "SELECT ST_AsText(geom) AS geom, clipped.gid, clipped.name, states_name
+          FROM (SELECT rivers.gid, rivers.name, (ST_DUMP(ST_Intersection(states.geom, rivers.geom))).geom AS geom, states.name as states_name
+          FROM ne_50m_admin_1_states_provinces_shp AS states
+              INNER JOIN ne_50m_rivers_lake_centerlines AS rivers
+              ON ST_Intersects(states.geom, rivers.geom))
+              AS clipped
+              WHERE (ST_Dimension(clipped.geom) = 1) AND (states_name='Washington');"
+rs = dbSendQuery(con, q)
+df = fetch(rs, n=-1)
+colnames(df)
+rivers <- convertQueryToSPObj(df,type='lines')
+end.rcode-->
+
+<!--begin.rcode
+shapeToDataFrame <- function(shape){
+  shape@data$id <- rownames(shape@data)
+  shape.points = fortify(shape,region='id')
+  shape.df = join(shape.points, shape@data, by='id')
+  return(shape.df)
+}
+
+bama <- shapeToDataFrame(states3)
+rivers <- shapeToDataFrame(rivers)
+ggplot()+geom_polygon(data=bama,aes(long,lat,order=order))+geom_path(data=rivers,aes(long,lat,order=order, group=gid))+coord_fixed()
+end.rcode-->
+
+<p>It sure would be nice to see what happens with a higher resolution map.</p>
+<!--begin.rcode
+q <- "SELECT ST_AsText(geom) AS geom, clipped.gid, clipped.name, states_name
+          FROM (SELECT rivers.gid, rivers.name, (ST_DUMP(ST_Intersection(states.geom, rivers.geom))).geom AS geom, states.name as states_name
+          FROM ne_10m_admin_1_states_provinces_shp AS states
+              INNER JOIN ne_10m_rivers_north_america AS rivers
+              ON ST_Intersects(states.geom, rivers.geom))
+              AS clipped
+              WHERE (ST_Dimension(clipped.geom) = 1) AND (states_name='Washington');"
+rs = dbSendQuery(con, q)
+df = fetch(rs, n=-1)
+colnames(df)
+rivers <- convertQueryToSPObj(df,type='lines')
+rivers <- shapeToDataFrame(rivers)
+
+q <- "SELECT ST_AsText(geom) AS geom, gid, name FROM ne_50m_admin_1_states_provinces_shp WHERE (name='Washington');"
+rs = dbSendQuery(con,q)
+df = fetch(rs, n=-1)
+wash <- convertQueryToSPObj(df)
+wash <- shapeToDataFrame(wash)
+
+ggplot()+
+  geom_polygon(data=wash,aes(long,lat,group=gid))+
+  geom_path(data=rivers,aes(long,lat, group=gid))+
+  coord_fixed()
+end.rcode-->
+
+
+</body>
+</html>
